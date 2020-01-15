@@ -2,7 +2,11 @@ import pytest
 from datetime import datetime
 
 from typed_json import typed_from_json, typed_to_json
-from .models import CountingModel, ISODateTime, MicroSecondsEpochDateTime, MilliSecondsEpochDateTime, Range, GenericModel, TimeData, DataModel, CountingDict
+from .models import (
+    CountingModel, CountingDict, CountingDataClass,
+    ISODateTime, MicroSecondsEpochDateTime, MilliSecondsEpochDateTime, TimeData,
+    GenericModel, DataModel
+)
 
 def test_CountingModel():
     json = {
@@ -27,8 +31,12 @@ def test_CountingModel():
     v = typed_from_json(CountingModel, json)
     assert v == model
 
+    json['total'] = 0
     json['childs']['abc']['childs'] = None
+    json['childs']['abc']['total'] = 0
+    json['childs']['qwe']['total'] = 0
     json['childs']['qwe']['childs']['ert']['childs'] = None
+    json['childs']['qwe']['childs']['ert']['total'] = 0
     assert typed_to_json(v) == json
 
 def test_CountingDict():
@@ -58,6 +66,37 @@ def test_CountingDict():
     json['childs']['qwe']['childs']['ert']['childs'] = None
     assert typed_to_json(v) == json
 
+def test_CountingDataClass():
+    json = {
+        'count': 5,
+        'childs': {
+            'abc': {
+                'count': 2,
+            },
+            'qwe': {
+                'count': 6,
+                'childs': { 'ert': { 'count': 5 } }
+            }
+        }
+    }
+    model = CountingDataClass(
+        count=5,
+        childs={
+            'abc': CountingDataClass(count=2),
+            'qwe': CountingDataClass(count=6, childs={ 'ert': CountingDataClass(count=5) } )
+        }
+    )
+    v = typed_from_json(CountingDataClass, json)
+    assert v == model
+
+    json['total'] = 0
+    json['childs']['abc']['childs'] = None
+    json['childs']['abc']['total'] = 0
+    json['childs']['qwe']['total'] = 0
+    json['childs']['qwe']['childs']['ert']['childs'] = None
+    json['childs']['qwe']['childs']['ert']['total'] = 0
+    assert typed_to_json(v) == json
+
 def test_TimeData():
     now = datetime.now()
     json = {
@@ -66,9 +105,9 @@ def test_TimeData():
         'micro' : int(now.timestamp()*1000000),
     }
     model = TimeData(
-        iso=ISODateTime(now),
-        mili=MilliSecondsEpochDateTime(datetime.fromtimestamp(int(now.timestamp()*1000) / 1000)),
-        micro=MicroSecondsEpochDateTime(now),
+        iso=ISODateTime(now), # type: ignore
+        mili=MilliSecondsEpochDateTime(datetime.fromtimestamp(int(now.timestamp()*1000) / 1000)), # type: ignore
+        micro=MicroSecondsEpochDateTime(now), # type: ignore
     )
 
     v = typed_from_json(TimeData, json)
@@ -119,11 +158,11 @@ def test_to_typed_fail():
     with pytest.raises(TypeError, match=r'Key "count" of CountingModel need *'):
         typed_from_json(CountingModel, {'count': 'af'})
 
-    with pytest.raises(ValueError, match=r'This function only support <NamedTuple>, <TypedDict>'):
+    with pytest.raises(ValueError, match=r'This function only support *'):
         typed_from_json(int, {})
 
     with pytest.raises(TypeError, match=r"Second argument need Dict type, but got: *"):
-        typed_from_json(CountingModel, 3)
+        typed_from_json(CountingModel, 3) # type: ignore
     
     with pytest.raises(ValueError, match=r'CountingModel missing required attribute *'):
         typed_from_json(CountingModel, {})

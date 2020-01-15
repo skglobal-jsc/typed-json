@@ -1,17 +1,28 @@
 from typing import Any, Dict, List, Optional, Tuple, NamedTuple, Iterable, TypeVar
 from datetime import datetime
+from dataclasses import dataclass
 
-from typing_extensions import TypedDict
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
 
 from typed_json import register_converter
 
 class CountingModel(NamedTuple):
     count: int
     childs: Optional[Dict[str, 'CountingModel']] = None
+    total: Optional[int] = 0
 
 class CountingDict(TypedDict):
     count: int
     childs: Optional[Dict[str, 'CountingDict']]
+
+@dataclass()
+class CountingDataClass:
+    count: int
+    childs: Optional[Dict[str, 'CountingDataClass']] = None
+    total: Optional[int] = 0
 
 Range = TypedDict('Range', {
     'from': int,
@@ -30,15 +41,15 @@ class DataModel(NamedTuple):
 
 class ISODateTime(datetime):
     def __new__(cls, dt:datetime):
-        return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo)
+        return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo) # type: ignore
 
 class MilliSecondsEpochDateTime(datetime):
     def __new__(cls, dt:datetime):
-        return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo)
+        return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo) # type: ignore
 
 class MicroSecondsEpochDateTime(datetime):
     def __new__(cls, dt:datetime):
-        return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo)
+        return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo) # type: ignore
 
 class TimeData(NamedTuple):
     iso: ISODateTime
@@ -56,11 +67,11 @@ def _datetime_json(val: datetime) -> Tuple[bool, Any]:
         return False, None
 def _datetime_typed(cls, val):
     if cls is ISODateTime and isinstance(val, str):
-        return True, ISODateTime(datetime.fromisoformat(val))
+        return True, ISODateTime(datetime.fromisoformat(val)) # type: ignore
     elif cls is MilliSecondsEpochDateTime and isinstance(val, int):
-        return True, MilliSecondsEpochDateTime(datetime.fromtimestamp(val / 1000))
+        return True, MilliSecondsEpochDateTime(datetime.fromtimestamp(val / 1000)) # type: ignore
     elif cls is MicroSecondsEpochDateTime and isinstance(val, int):
-        return True, MicroSecondsEpochDateTime(datetime.fromtimestamp(val / 1000000))
+        return True, MicroSecondsEpochDateTime(datetime.fromtimestamp(val / 1000000)) # type: ignore
     else:
         return False, None
 
