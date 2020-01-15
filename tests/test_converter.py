@@ -1,12 +1,17 @@
-import pytest
+import sys
 from datetime import datetime
 
+import pytest
 from typed_json import typed_from_json, typed_to_json
 from .models import (
-    CountingModel, CountingDict, CountingDataClass,
+    CountingModel, CountingDict,
     ISODateTime, MicroSecondsEpochDateTime, MilliSecondsEpochDateTime, TimeData,
-    GenericModel, DataModel
+    GenericModel,
+    DataModel, State
 )
+
+if sys.version_info >= (3, 7):
+    from .models import CountingDataClass
 
 def test_CountingModel():
     json = {
@@ -66,36 +71,37 @@ def test_CountingDict():
     json['childs']['qwe']['childs']['ert']['childs'] = None
     assert typed_to_json(v) == json
 
-def test_CountingDataClass():
-    json = {
-        'count': 5,
-        'childs': {
-            'abc': {
-                'count': 2,
-            },
-            'qwe': {
-                'count': 6,
-                'childs': { 'ert': { 'count': 5 } }
+if sys.version_info >= (3, 7):
+    def test_CountingDataClass():
+        json = {
+            'count': 5,
+            'childs': {
+                'abc': {
+                    'count': 2,
+                },
+                'qwe': {
+                    'count': 6,
+                    'childs': { 'ert': { 'count': 5 } }
+                }
             }
         }
-    }
-    model = CountingDataClass(
-        count=5,
-        childs={
-            'abc': CountingDataClass(count=2),
-            'qwe': CountingDataClass(count=6, childs={ 'ert': CountingDataClass(count=5) } )
-        }
-    )
-    v = typed_from_json(CountingDataClass, json)
-    assert v == model
+        model = CountingDataClass(
+            count=5,
+            childs={
+                'abc': CountingDataClass(count=2),
+                'qwe': CountingDataClass(count=6, childs={ 'ert': CountingDataClass(count=5) } )
+            }
+        )
+        v = typed_from_json(CountingDataClass, json)
+        assert v == model
 
-    json['total'] = 0
-    json['childs']['abc']['childs'] = None
-    json['childs']['abc']['total'] = 0
-    json['childs']['qwe']['total'] = 0
-    json['childs']['qwe']['childs']['ert']['childs'] = None
-    json['childs']['qwe']['childs']['ert']['total'] = 0
-    assert typed_to_json(v) == json
+        json['total'] = 0
+        json['childs']['abc']['childs'] = None
+        json['childs']['abc']['total'] = 0
+        json['childs']['qwe']['total'] = 0
+        json['childs']['qwe']['childs']['ert']['childs'] = None
+        json['childs']['qwe']['childs']['ert']['total'] = 0
+        assert typed_to_json(v) == json
 
 def test_TimeData():
     now = datetime.now()
@@ -117,6 +123,7 @@ def test_TimeData():
 
 def test_DataModel():
     json = {
+        'state': 'ok',
         'string': 'a',
         'list_str': ['a', 'e', 'd'],
         'num': 2,
@@ -129,10 +136,16 @@ def test_DataModel():
                 'count': 6,
                 'childs': {'ert': {'count': 5, 'childs': None } }
             }
-        }
+        },
+        'union_data': [
+            'aaaa',
+            2323,
+            {'from': 42, 'to': 100}
+        ]
     }
 
     model = DataModel(
+        state = State.ok,
         string='a',
         list_str=['a', 'e', 'd'],
         num=2,
@@ -143,16 +156,20 @@ def test_DataModel():
         ],
         range_num={ 'from': 1, 'to': 10 },
         counting={
-            'abc': CountingModel(count=2),
-            'qwe': CountingModel(count=6, childs={ 'ert': CountingModel(count=5) } )
-        }
+            'abc': CountingDict(count=2, childs=None),
+            'qwe': CountingDict(count=6, childs={ 'ert': CountingDict(count=5, childs=None) } )
+        },
+        union_data=[
+            'aaaa',
+            2323,
+            {'from': 42, 'to': 100}
+        ]
     )
 
     v = typed_from_json(DataModel, json)
     assert v == model
 
     assert typed_to_json(v) == json
-
 
 def test_to_typed_fail():
     with pytest.raises(TypeError, match=r'Key "count" of CountingModel need *'):

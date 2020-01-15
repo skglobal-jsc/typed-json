@@ -1,6 +1,8 @@
-from typing import Any, Dict, List, Optional, Tuple, NamedTuple, Iterable, TypeVar
+import sys
+from typing import Any, Dict, List, Optional, Tuple, NamedTuple, Iterable, TypeVar, Union
 from datetime import datetime
 from dataclasses import dataclass
+from enum import Enum, IntEnum, IntFlag, Flag
 
 try:
     from typing import TypedDict
@@ -18,39 +20,42 @@ class CountingDict(TypedDict):
     count: int
     childs: Optional[Dict[str, 'CountingDict']]
 
-@dataclass()
-class CountingDataClass:
-    count: int
-    childs: Optional[Dict[str, 'CountingDataClass']] = None
-    total: Optional[int] = 0
+if sys.version_info >= (3, 7):
+    @dataclass()
+    class CountingDataClass:
+        count: int
+        childs: Optional[Dict[str, 'CountingDataClass']] = None
+        total: Optional[int] = 0
 
 Range = TypedDict('Range', {
     'from': int,
     'to': int
 })
+class State(Enum):
+    ok = 'ok'
+    error = 'error'
 
 class DataModel(NamedTuple):
+    state: State
     string: str
     list_str: List[str]
     num: int
     list_num: List[float]
     data3d: List[List[int]]
     range_num: Optional[Range]
-    counting: Dict[str, CountingModel]
+    counting: Dict[str, CountingDict]
+    union_data: List[Union[int, str, Range]]
 
 
 class ISODateTime(datetime):
     def __new__(cls, dt:datetime):
         return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo) # type: ignore
-
 class MilliSecondsEpochDateTime(datetime):
     def __new__(cls, dt:datetime):
         return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo) # type: ignore
-
 class MicroSecondsEpochDateTime(datetime):
     def __new__(cls, dt:datetime):
         return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo) # type: ignore
-
 class TimeData(NamedTuple):
     iso: ISODateTime
     mili: MilliSecondsEpochDateTime

@@ -1,4 +1,5 @@
 from typing import Callable, Any, Dict, List, Tuple, get_type_hints, TypeVar, Type
+from enum import Enum, EnumMeta
 
 try:
     from typing import _TypedDictMeta # type: ignore
@@ -16,6 +17,7 @@ TypedConverter = Callable[[Any, Any], Tuple[bool, Any]]
 JsonConverter = Callable[[Any], Tuple[bool, Dict[str, Any]]]
 TYPED_CONVERTERS: List[TypedConverter] = []
 JSON_CONVERTERS: List[JsonConverter] = []
+NONETYPE = type(None)
 
 def register_converter(typed_conv: TypedConverter, json_conv: JsonConverter):
     TYPED_CONVERTERS.append(typed_conv)
@@ -59,6 +61,8 @@ def _json_handler(value) -> Any:
             k: _json_handler(v)
             for k, v in value.items()
         }
+    elif isinstance(value, Enum):
+        return value.value
 
     for handler in JSON_CONVERTERS:
         success, val = handler(value)
@@ -84,7 +88,7 @@ def typed_from_json(typed_class: Type[T], dict_val: dict) -> T:
 
 def _annotation_handler(cls, value, key, root_class):
     if value is None:
-        if 'typing.Union' in str(cls) and any(i is type(None) for i in cls.__args__):
+        if str(cls).startswith('typing.Union') and any(i is NONETYPE for i in cls.__args__):
             if is_namedtuple(root_class):
                 return root_class._field_defaults[key]
             elif is_dataclass(root_class):
@@ -94,24 +98,39 @@ def _annotation_handler(cls, value, key, root_class):
         else:
             raise ValueError(f'{root_class.__name__} missing required attribute: {key}')
 
-    elif 'typing.Union' in str(cls):
-        for annotation in cls.__args__:
-            if 'NoneType' not in str(annotation):
-                return _annotation_handler(annotation, value, key, root_class)
+    elif str(cls).startswith('typing.Union'):
+        annotations = [*cls.__args__]
+        if NONETYPE in annotations:
+            annotations.remove(NONETYPE)
 
-    elif 'typing.List' in str(cls):
+        for annotation in annotations:
+            try:
+                return _annotation_handler(annotation, value, key, root_class)
+            except TypeError:
+                pass
+
+        raise TypeError(f'Key "{key}" of {root_class.__name__} need {cls} but got {type(value)}')
+
+    elif str(cls).startswith('typing.List'):
         if isinstance(value, list):
             return [
                 _annotation_handler(cls.__args__[0], v, key, root_class)
                 for v in value
             ]
 
-    elif 'typing.Dict' in str(cls):
+    elif str(cls).startswith('typing.Dict'):
         if isinstance(value, dict):
             return {
                 k: _annotation_handler(cls.__args__[1], v, key, root_class)
                 for k, v in value.items()
             }
+
+    elif type(cls) is EnumMeta and issubclass(cls, Enum):
+        for _, enum in cls.__members__.items():
+            if enum.value == value:
+                return enum
+
+        raise ValueError(f'Not any "{cls.__name__}" enum matching with "{value}"')
 
     elif type(cls) is type and isinstance(value, cls):
         return value
