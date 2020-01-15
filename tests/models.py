@@ -48,13 +48,16 @@ class DataModel(NamedTuple):
 
 
 class ISODateTime(datetime):
-    def __new__(cls, dt:datetime):
+    def __new__(cls, iso_str:str):
+        dt = datetime.fromisoformat(iso_str)
         return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo) # type: ignore
 class MilliSecondsEpochDateTime(datetime):
-    def __new__(cls, dt:datetime):
+    def __new__(cls, milisec:int):
+        dt = datetime.fromtimestamp(milisec / 1000)
         return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo) # type: ignore
 class MicroSecondsEpochDateTime(datetime):
-    def __new__(cls, dt:datetime):
+    def __new__(cls, microsec:int):
+        dt = datetime.fromtimestamp(microsec / 1000000)
         return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo) # type: ignore
 class TimeData(NamedTuple):
     iso: ISODateTime
@@ -72,11 +75,11 @@ def _datetime_json(val: datetime) -> Tuple[bool, Any]:
         return False, None
 def _datetime_typed(cls, val):
     if cls is ISODateTime and isinstance(val, str):
-        return True, ISODateTime(datetime.fromisoformat(val)) # type: ignore
+        return True, ISODateTime(val) # type: ignore
     elif cls is MilliSecondsEpochDateTime and isinstance(val, int):
-        return True, MilliSecondsEpochDateTime(datetime.fromtimestamp(val / 1000)) # type: ignore
+        return True, MilliSecondsEpochDateTime(val) # type: ignore
     elif cls is MicroSecondsEpochDateTime and isinstance(val, int):
-        return True, MicroSecondsEpochDateTime(datetime.fromtimestamp(val / 1000000)) # type: ignore
+        return True, MicroSecondsEpochDateTime(val) # type: ignore
     else:
         return False, None
 

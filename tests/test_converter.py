@@ -111,9 +111,9 @@ def test_TimeData():
         'micro' : int(now.timestamp()*1000000),
     }
     model = TimeData(
-        iso=ISODateTime(now), # type: ignore
-        mili=MilliSecondsEpochDateTime(datetime.fromtimestamp(int(now.timestamp()*1000) / 1000)), # type: ignore
-        micro=MicroSecondsEpochDateTime(now), # type: ignore
+        iso=ISODateTime(now.isoformat()), # type: ignore
+        mili=MilliSecondsEpochDateTime(int(now.timestamp()*1000)), # type: ignore
+        micro=MicroSecondsEpochDateTime(int(now.timestamp()*1000000)), # type: ignore
     )
 
     v = typed_from_json(TimeData, json)
