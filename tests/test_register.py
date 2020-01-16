@@ -1,51 +1,7 @@
-import sys
-from typing import Any, Dict, List, Optional, Tuple, NamedTuple, Iterable, TypeVar, Union
 from datetime import datetime
-from dataclasses import dataclass
-from enum import Enum, IntEnum, IntFlag, Flag
+from typing import NamedTuple, Tuple, Any
 
-try:
-    from typing import TypedDict
-except ImportError:
-    from typing_extensions import TypedDict
-
-from typed_json import register_converter
-
-class CountingModel(NamedTuple):
-    count: int
-    childs: Optional[Dict[str, 'CountingModel']] = None
-    total: Optional[int] = 0
-
-class CountingDict(TypedDict):
-    count: int
-    childs: Optional[Dict[str, 'CountingDict']]
-
-if sys.version_info >= (3, 7):
-    @dataclass()
-    class CountingDataClass:
-        count: int
-        childs: Optional[Dict[str, 'CountingDataClass']] = None
-        total: Optional[int] = 0
-
-Range = TypedDict('Range', {
-    'from': int,
-    'to': int
-})
-class State(Enum):
-    ok = 'ok'
-    error = 'error'
-
-class DataModel(NamedTuple):
-    state: State
-    string: str
-    list_str: List[str]
-    num: int
-    list_num: List[float]
-    data3d: List[List[int]]
-    range_num: Optional[Range]
-    counting: Dict[str, CountingDict]
-    union_data: List[Union[int, str, Range]]
-
+from typed_json import register_converter, typed_from_json, typed_to_json
 
 class ISODateTime(datetime):
     def __new__(cls, iso_str:str):
@@ -85,6 +41,20 @@ def _datetime_typed(cls, val):
 
 register_converter(_datetime_typed, _datetime_json)
 
-T = TypeVar('T')
-class GenericModel(NamedTuple):
-    ite: Iterable[T]
+def test_TimeData():
+    now = datetime.now()
+    json = {
+        'iso': now.isoformat(),
+        'mili' : int(now.timestamp()*1000),
+        'micro' : int(now.timestamp()*1000000),
+    }
+    model = TimeData(
+        iso=ISODateTime(now.isoformat()), # type: ignore
+        mili=MilliSecondsEpochDateTime(int(now.timestamp()*1000)), # type: ignore
+        micro=MicroSecondsEpochDateTime(int(now.timestamp()*1000000)), # type: ignore
+    )
+
+    v = typed_from_json(TimeData, json)
+    assert v == model
+
+    assert typed_to_json(v) == json

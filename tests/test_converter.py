@@ -1,17 +1,52 @@
 import sys
-from datetime import datetime
+from typing import Dict, List, Optional, NamedTuple, Union
+from dataclasses import dataclass
+from enum import Enum
 
 import pytest
 from typed_json import typed_from_json, typed_to_json
-from .models import (
-    CountingModel, CountingDict,
-    ISODateTime, MicroSecondsEpochDateTime, MilliSecondsEpochDateTime, TimeData,
-    GenericModel,
-    DataModel, State
-)
+
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
+
+class CountingModel(NamedTuple):
+    count: int
+    childs: Optional[Dict[str, 'CountingModel']] = None
+    total: Optional[int] = 0
+
+class CountingDict(TypedDict):
+    count: int
+    childs: Optional[Dict[str, 'CountingDict']]
 
 if sys.version_info >= (3, 7):
-    from .models import CountingDataClass
+    @dataclass()
+    class CountingDataClass:
+        count: int
+        childs: Optional[Dict[str, 'CountingDataClass']] = None
+        total: Optional[int] = 0
+
+Range = TypedDict('Range', {
+    'from': int,
+    'to': int
+})
+
+class State(Enum):
+    ok = 'ok'
+    error = 'error'
+
+class DataModel(NamedTuple):
+    state: State
+    string: str
+    list_str: List[str]
+    num: int
+    list_num: List[float]
+    data3d: List[List[int]]
+    range_num: Optional[Range]
+    counting: Dict[str, CountingDict]
+    union_data: List[Union[int, str, Range]]
+
 
 def test_CountingModel():
     json = {
@@ -103,24 +138,6 @@ if sys.version_info >= (3, 7):
         json['childs']['qwe']['childs']['ert']['total'] = 0
         assert typed_to_json(v) == json
 
-def test_TimeData():
-    now = datetime.now()
-    json = {
-        'iso': now.isoformat(),
-        'mili' : int(now.timestamp()*1000),
-        'micro' : int(now.timestamp()*1000000),
-    }
-    model = TimeData(
-        iso=ISODateTime(now.isoformat()), # type: ignore
-        mili=MilliSecondsEpochDateTime(int(now.timestamp()*1000)), # type: ignore
-        micro=MicroSecondsEpochDateTime(int(now.timestamp()*1000000)), # type: ignore
-    )
-
-    v = typed_from_json(TimeData, json)
-    assert v == model
-
-    assert typed_to_json(v) == json
-
 def test_DataModel():
     json = {
         'state': 'ok',
@@ -170,25 +187,3 @@ def test_DataModel():
     assert v == model
 
     assert typed_to_json(v) == json
-
-def test_to_typed_fail():
-    with pytest.raises(TypeError, match=r'Key "count" of CountingModel need *'):
-        typed_from_json(CountingModel, {'count': 'af'})
-
-    with pytest.raises(ValueError, match=r'This function only support *'):
-        typed_from_json(int, {})
-
-    with pytest.raises(TypeError, match=r"Second argument need Dict type, but got: *"):
-        typed_from_json(CountingModel, 3) # type: ignore
-    
-    with pytest.raises(ValueError, match=r'CountingModel missing required attribute *'):
-        typed_from_json(CountingModel, {})
-
-    with pytest.raises(TypeError, match=r'Key "ite" of GenericModel need typing.Iterable\[~T\] *'):
-        typed_from_json(GenericModel, { 'ite': [] })
-
-    with pytest.raises(ValueError, match=r'This function only support *'):
-        typed_to_json(3)
-
-    with pytest.raises(TypeError, match=r'Unable to handler type: *'):
-        typed_to_json({ 'e': set() })

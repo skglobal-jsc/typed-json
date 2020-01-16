@@ -82,21 +82,28 @@ def typed_from_json(typed_class: Type[T], dict_val: dict) -> T:
         val = dict_val.get(key, None)
         # print(f'{key} {val} {annotation}')
 
-        new_kwargs[key] = _annotation_handler(annotation, val, key, typed_class)
+        if val is None:
+            if str(annotation).startswith('typing.Union') and any(i is NONETYPE for i in annotation.__args__):
+                if is_namedtuple(typed_class):
+                    new_kwargs[key] = typed_class._field_defaults[key]
+                elif is_dataclass(typed_class):
+                    new_kwargs[key] = typed_class.__dataclass_fields__[key].default
+                else:
+                    new_kwargs[key] = None
+            else:
+                raise ValueError(f'{typed_class.__name__} missing required attribute: {key}')
+
+        else:
+            new_kwargs[key] = _annotation_handler(annotation, val, key, typed_class)
 
     return typed_class(**new_kwargs)
 
 def _annotation_handler(cls, value, key, root_class):
     if value is None:
         if str(cls).startswith('typing.Union') and any(i is NONETYPE for i in cls.__args__):
-            if is_namedtuple(root_class):
-                return root_class._field_defaults[key]
-            elif is_dataclass(root_class):
-                return root_class.__dataclass_fields__[key].default
-            else:
-                return None
+            return None
         else:
-            raise ValueError(f'{root_class.__name__} missing required attribute: {key}')
+            raise ValueError(f'None is not accepted inside attribute "{key}" of {root_class.__name__} need: {cls}')
 
     elif str(cls).startswith('typing.Union'):
         annotations = [*cls.__args__]
