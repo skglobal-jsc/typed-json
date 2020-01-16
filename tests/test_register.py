@@ -5,7 +5,7 @@ from typed_json import register_converter, typed_from_json, typed_to_json
 
 class ISODateTime(datetime):
     def __new__(cls, iso_str:str):
-        dt = datetime.strptime(iso_str, '%Y-%m-%dT%H:%M:%S.%f%z')
+        dt = datetime.strptime(iso_str, '%Y-%m-%dT%H:%M:%S')
         return super().__new__(cls, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, dt.tzinfo) # type: ignore
 class MilliSecondsEpochDateTime(datetime):
     def __new__(cls, milisec:int):
@@ -44,12 +44,12 @@ register_converter(_datetime_typed, _datetime_json)
 def test_TimeData():
     now = datetime.now()
     json = {
-        'iso': now.strftime('%Y-%m-%dT%H:%M:%S.%f%z'),
+        'iso': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'mili' : int(now.timestamp()*1000),
         'micro' : int(now.timestamp()*1000000),
     }
     model = TimeData(
-        iso=ISODateTime(now.strftime('%Y-%m-%dT%H:%M:%S.%f%z')), # type: ignore
+        iso=ISODateTime(now.strftime('%Y-%m-%dT%H:%M:%S')), # type: ignore
         mili=MilliSecondsEpochDateTime(int(now.timestamp()*1000)), # type: ignore
         micro=MicroSecondsEpochDateTime(int(now.timestamp()*1000000)), # type: ignore
     )
