@@ -1,3 +1,4 @@
+import sys
 from typing import Callable, Any, Dict, List, Tuple, get_type_hints, TypeVar, Type
 from enum import Enum, EnumMeta
 
@@ -31,7 +32,10 @@ def is_namedtuple(cls):
 def is_dataclass(cls):
     return hasattr(cls, '__dataclass_fields__') and hasattr(cls, '__dataclass_params__')
 def is_literal(cls):
-    return hasattr(cls, '__origin__') and cls.__origin__ is Literal
+    if sys.version_info >= (3, 7):
+        return hasattr(cls, '__origin__') and cls.__origin__ is Literal
+    else:
+        return str(cls).startswith(str(Literal))
 
 def typed_to_json(value) -> Dict[str, Any]:
     t = type(value)
