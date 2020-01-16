@@ -139,7 +139,12 @@ def _annotation_handler(cls, value, key, root_class):
             }
 
     elif is_literal(cls):
-        if any(d == value for d in cls.__args__):
+        if sys.version_info >= (3, 7):
+            args = cls.__args__
+        else:
+            args = cls.__values__
+
+        if any(d == value for d in args):
             return value
         else:
             raise ValueError(f'"{value}" not match with "{cls}"')
