@@ -1,5 +1,10 @@
 from typing import NamedTuple, Dict, Optional, Union, TypeVar, Iterable
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
 import pytest
 from typed_json import typed_from_json, typed_to_json, register_converter
 
@@ -13,6 +18,9 @@ class GenericModel(NamedTuple):
 class OptionalInside(NamedTuple):
     not_accept: Optional[Union[Dict[str, int], int]] = 0
     accept: Optional[Union[Dict[str, Optional[int]], int]] = 0
+
+class LiteralModel(NamedTuple):
+    literal: Literal[0, 1]
 
 def test_common_fail():
     with pytest.raises(TypeError, match=r'Key "count" of Model need *'):
@@ -35,6 +43,9 @@ def test_common_fail():
 
     with pytest.raises(TypeError, match=r'Unable to handler type: *'):
         typed_to_json({ 'e': set() })
+
+    with pytest.raises(ValueError, match=r'"4" not match with *'):
+        typed_from_json(LiteralModel, { 'literal': 4 })
 
 def test_optional_inside():
     v = typed_from_json(OptionalInside, { 'accept': { 'asd': None } })

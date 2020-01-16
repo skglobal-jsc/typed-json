@@ -38,7 +38,7 @@ CountingModel(count=5, childs={'abc': CountingModel(count=2, childs=None), 'qwe'
  * Union[T1, T2, ...]
  * dataclass (requires Python 3.7)
  * TypedDict (requires Python 3.8)
- <!-- * Literal (requires Python 3.8) -->
+ * Literal (requires Python 3.8)
 
 ## Add custom converter
 

@@ -5,13 +5,12 @@ from enum import Enum
 if sys.version_info >= (3, 7):
     from dataclasses import dataclass
 
-import pytest
 from typed_json import typed_from_json, typed_to_json
 
 try:
-    from typing import TypedDict
+    from typing import TypedDict, Literal
 except ImportError:
-    from typing_extensions import TypedDict
+    from typing_extensions import TypedDict, Literal
 
 class CountingModel(NamedTuple):
     count: int
@@ -48,6 +47,7 @@ class DataModel(NamedTuple):
     range_num: Optional[Range]
     counting: Dict[str, CountingDict]
     union_data: List[Union[int, str, Range]]
+    literal: Literal[0, 1]
 
 
 def test_CountingModel():
@@ -160,7 +160,8 @@ def test_DataModel():
             'aaaa',
             2323,
             {'from': 42, 'to': 100}
-        ]
+        ],
+        'literal': 0,
     }
 
     model = DataModel(
@@ -182,7 +183,8 @@ def test_DataModel():
             'aaaa',
             2323,
             {'from': 42, 'to': 100}
-        ]
+        ],
+        literal=0,
     )
 
     v = typed_from_json(DataModel, json)

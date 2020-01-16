@@ -2,9 +2,9 @@ from typing import Callable, Any, Dict, List, Tuple, get_type_hints, TypeVar, Ty
 from enum import Enum, EnumMeta
 
 try:
-    from typing import _TypedDictMeta # type: ignore
+    from typing import _TypedDictMeta, Literal # type: ignore
 except ImportError:
-    from typing_extensions import _TypedDictMeta # type: ignore
+    from typing_extensions import _TypedDictMeta, Literal # type: ignore
 
 __all__ = [
     'register_converter',
@@ -30,6 +30,8 @@ def is_namedtuple(cls):
     return hasattr(cls, '_asdict') and hasattr(cls, '_fields') and hasattr(cls, '__annotations__')
 def is_dataclass(cls):
     return hasattr(cls, '__dataclass_fields__') and hasattr(cls, '__dataclass_params__')
+def is_literal(cls):
+    return hasattr(cls, '__origin__') and cls.__origin__ is Literal
 
 def typed_to_json(value) -> Dict[str, Any]:
     t = type(value)
@@ -131,6 +133,12 @@ def _annotation_handler(cls, value, key, root_class):
                 k: _annotation_handler(cls.__args__[1], v, key, root_class)
                 for k, v in value.items()
             }
+
+    elif is_literal(cls):
+        if any(d == value for d in cls.__args__):
+            return value
+        else:
+            raise ValueError(f'"{value}" not match with "{cls}"')
 
     elif type(cls) is EnumMeta and issubclass(cls, Enum):
         for _, enum in cls.__members__.items():
