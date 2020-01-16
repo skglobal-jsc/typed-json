@@ -1,7 +1,9 @@
 import sys
 from typing import Dict, List, Optional, NamedTuple, Union
-from dataclasses import dataclass
 from enum import Enum
+
+if sys.version_info >= (3, 7):
+    from dataclasses import dataclass
 
 import pytest
 from typed_json import typed_from_json, typed_to_json
